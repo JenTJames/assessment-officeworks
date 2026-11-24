@@ -1,5 +1,6 @@
 import type { RouteObject } from "react-router";
 import { CategoryPage } from "@/features/category/CategoryPage";
+import { ProductPage } from "@/features/product/ProductPage";
 import { SearchPage } from "@/features/search/SearchPage";
 import { routePatterns } from "@/lib/paths";
 import { RootLayout } from "./layout/RootLayout";
@@ -12,6 +13,7 @@ export const routes: RouteObject[] = [
       { index: true, element: null },
       { path: routePatterns.category, element: <CategoryPage /> },
       { path: routePatterns.search, element: <SearchPage /> },
+      { path: routePatterns.product, element: <ProductPage /> },
     ],
   },
 ];
