@@ -31,6 +31,7 @@ function createEnquiryGuards({ enquiryRateLimit, logger }: Container): RequestHa
 
 export function buildApp(container: Container): Express {
   const app = express();
+  app.set("trust proxy", container.trustProxyHops);
   app.use(helmet());
   app.use(cors({ origin: container.corsOrigin }));
   app.use(express.json({ limit: "16kb" }));

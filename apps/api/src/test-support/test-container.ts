@@ -26,6 +26,7 @@ type TestContainerOptions = {
   featuredIds?: readonly ProductId[];
   mailer?: Mailer;
   enquiryRateLimit?: RateLimitSettings;
+  trustProxyHops?: number;
 };
 
 export function buildTestContainer({
@@ -33,11 +34,13 @@ export function buildTestContainer({
   featuredIds = [],
   mailer = createRecordingMailer(),
   enquiryRateLimit = { limit: 100, windowMs: 60_000 },
+  trustProxyHops = 0,
 }: TestContainerOptions = {}): Container {
   const productSource = createInMemoryProductSource(feed);
   return {
     logger: pino({ level: "silent" }),
     corsOrigin: "http://localhost:5173",
+    trustProxyHops,
     catalogueService: createCatalogueService({
       productSource,
       featuredSelector: staticFeaturedSelector(featuredIds),

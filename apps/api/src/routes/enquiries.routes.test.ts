@@ -95,6 +95,29 @@ describe("POST /api/v1/enquiries", () => {
     expect(mailer.sent).toHaveLength(2);
   });
 
+  it("rate limits each client separately behind a trusted proxy", async () => {
+    const { app } = setup({
+      enquiryRateLimit: { limit: 1, windowMs: 60_000 },
+      trustProxyHops: 1,
+    });
+
+    await request(app)
+      .post("/api/v1/enquiries")
+      .set("X-Forwarded-For", "203.0.113.1")
+      .send(enquiry);
+    const otherClient = await request(app)
+      .post("/api/v1/enquiries")
+      .set("X-Forwarded-For", "203.0.113.2")
+      .send(enquiry);
+    const sameClient = await request(app)
+      .post("/api/v1/enquiries")
+      .set("X-Forwarded-For", "203.0.113.1")
+      .send(enquiry);
+
+    expect(otherClient.status).toBe(202);
+    expect(sameClient.status).toBe(429);
+  });
+
   it("does not rate limit catalogue endpoints", async () => {
     const { app } = setup({ enquiryRateLimit: { limit: 1, windowMs: 60_000 } });
 

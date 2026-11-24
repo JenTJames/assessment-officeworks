@@ -17,6 +17,7 @@ describe("loadEnv", () => {
       NODE_ENV: "development",
       PORT: 4000,
       LOG_LEVEL: "info",
+      TRUST_PROXY_HOPS: 0,
       REDIS_URL: undefined,
       FAKE_STORE_BASE_URL: "https://fakestoreapi.com",
       FAKE_STORE_TIMEOUT_MS: 5000,

@@ -21,6 +21,7 @@ import { createEnquiryService, type EnquiryService } from "./services/enquiry/en
 export type Container = {
   logger: Logger;
   corsOrigin: string;
+  trustProxyHops: number;
   catalogueService: CatalogueService;
   enquiryService: EnquiryService;
   enquiryRateLimit: RateLimitSettings;
@@ -91,6 +92,7 @@ export function createContainer(env: Env): Container {
   return {
     logger,
     corsOrigin: env.CORS_ORIGIN,
+    trustProxyHops: env.TRUST_PROXY_HOPS,
     catalogueService: createCatalogueService({ productSource, featuredSelector }),
     enquiryService: createEnquiryService({
       productSource,

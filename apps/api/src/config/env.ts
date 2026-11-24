@@ -13,6 +13,7 @@ const envSchema = z
       .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
       .default("info"),
     CORS_ORIGIN: z.url(),
+    TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(0),
     REDIS_URL: optionalUrl,
     FAKE_STORE_BASE_URL: z.url().default("https://fakestoreapi.com"),
     FAKE_STORE_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
