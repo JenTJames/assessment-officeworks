@@ -58,10 +58,16 @@ apps/web/src/
   app/                       Router, routes, providers and layout only
   features/<name>/           home, category, search, product, enquiry: page, hooks/, components/
   components/                Shared presentational components; components/ui/ holds shadcn
-  lib/http.ts                The single Axios instance
+  hooks/                     Shared router hooks (URL params); no server state
+  lib/http.ts                The single Axios instance; maps failures to ApiError
   lib/api.ts                 Typed API functions; validates every response with contracts
+  lib/api-error.ts           ApiError and describeError() for user-facing error copy
+  lib/format.ts              Price, rating and count formatting
+  lib/paths.ts               Route patterns and link builders (the only place URLs are spelled)
   lib/utils.ts               cn()
-  config/brand.ts            Brand name, copy and other brand values
+  config/brand.ts            Brand name, logo mark, locale and UI copy
+  config/catalogue.ts        Page sizes and other catalogue display settings
+  test/                      Vitest setup, MSW server, fixtures, renderRoute()
 ```
 
 ## API layers (ports and adapters)
@@ -119,7 +125,8 @@ Each layer has one job and depends only on the layer below it or on interfaces. 
 - **Hooks** own server state and call `lib/api.ts`. They are the only callers of `lib/api.ts`.
 - **lib/http.ts** holds the single Axios instance. **lib/api.ts** holds the typed API functions and parses responses with contract schemas.
 - **components/**: Shared presentational components (ProductTile, ProductGrid, Pagination, PriceTag, loading/error/empty states). They receive props and render. No fetching and no TanStack Query.
-- **Branding** lives only in `config/brand.ts` and the CSS variables in `index.css`, so a redesign never touches feature code. Use theme tokens (`bg-primary`, `text-muted-foreground`), never raw colours, in feature code.
+- **Branding** lives only in `config/brand.ts` and the CSS variables in `index.css`, so a redesign never touches feature code. Use theme tokens (`bg-primary`, `text-muted-foreground`), never raw colours, in feature code. Beyond the shadcn tokens, `index.css` defines `--font-body`, `--rating` (stars), `--media` (product image well) and `--highlight` (badges); add a token there rather than a raw colour in a component.
+- **Async UI**: pages pass a query to `<AsyncContent state={query} loading={…}>`, which renders the loading fallback, the error panel (with retry when `describeError` allows it) or the data. Page tests render real routes with `renderRoute(path)` and fake the API with MSW handlers from `test/server.ts`.
 - Web imports are extensionless and use the `@/` alias for `src/`.
 
 ## Contracts
