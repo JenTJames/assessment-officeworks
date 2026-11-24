@@ -8,6 +8,8 @@ Read `DECISIONS.md` for product decisions and `PLAN.md` for the scaffold plan.
 
 Run everything from the repo root with Node 26.13.1 (`nvm use`) and pnpm.
 
+First-time setup: `cp .env.example .env`. The API reads the root `.env` in dev and exits at startup if a required variable is missing.
+
 | Command          | Purpose                                                               |
 | ---------------- | --------------------------------------------------------------------- |
 | `pnpm install`   | Install all workspaces                                                |
@@ -26,7 +28,7 @@ All four of `pnpm typecheck`, `pnpm lint`, `pnpm test` and `pnpm build` must pas
 - pnpm workspaces: `apps/web`, `apps/api`, `packages/contracts`. Versions are saved exactly (`saveExact`).
 - TypeScript **6.0.x**. Do not upgrade to 7 until typescript-eslint supports it.
 - **contracts**: Zod 4.
-- **api**: Express 5, Zod, ioredis, express-rate-limit + rate-limit-redis, helmet, cors, Nodemailer, pino + pino-http. Runs on Node's native TypeScript support in dev (no tsx, no dotenv; `--env-file-if-exists=.env`). Built with `tsc` for production.
+- **api**: Express 5, Zod, ioredis, express-rate-limit + rate-limit-redis, helmet, cors, Nodemailer, pino + pino-http. Runs on Node's native TypeScript support in dev (no tsx, no dotenv; `--env-file-if-exists=../../.env` loads the root `.env`). Built with `tsc` for production.
 - **web**: React 19, Vite, Tailwind CSS v4, shadcn/ui (new-york style, Radix), React Router 8, TanStack Query, one Axios instance, React Hook Form + `@hookform/resolvers`, Zod.
 - **Tests**: Vitest everywhere, Supertest (api), Testing Library + jsdom (web), MSW for faking HTTP. Playwright later.
 - **Later**: Docker Compose with web (nginx), api, redis, mailpit.

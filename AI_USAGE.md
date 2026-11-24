@@ -24,7 +24,7 @@
 
 ### 3. Building the plan
 
-- **Tool:** Claude Opus 5.5, medium effort (Claude Code CLI)
+- **Tool:** Claude Opus 5.5, medium effort (Claude Code CLI, Plan Mode)
 - **Key prompt:**
 
 > We're building a product catalogue web app. Customers browse and search products and send an enquiry about a product to the sales team. Treat this as the foundation of a real product, not a throwaway prototype. The product data source, the look and feel, and the email provider will all change later, so they must be swappable without touching the rest of the code.
@@ -102,3 +102,12 @@
 - **Outcome:**: Claude generated the plan and passed it to me for approval. After approval, the workspace is scaffolded and I reviewed the folder structure to ensure that it followed the plan accurately and best practices were followed.
 - **My correction to Claude's Plan:**
     I went reviewed the plan and asked Claude to use React 19 instead of React 18 since ShadCN's Tailwind V4 components no longer uses React.forwardRef and instead uses React 19's ref as an ordinary prop.
+
+### 4. Scaffolding the Project
+- **Tool:** Claude Opus 5.5, medium effort (Claude Code CLI, Accept edits mode)
+- **Outcome:** Claude scaffolded the project, correctly flagged incompatibility of React Router 8 & React 19.2.7 below versions. So, if I went ahead with Claude's suggestion of using React 18, it could have broken the app.
+
+### 5. Building API Contracts
+- **Tool:** Claude Opus 5.5, medium effort (Claude Code CLI, Accept edits mode)
+- **Prompt:** Let's work on the contracts now. Check the Fakestore API documentation at https://fakestoreapi.com/ and build contracts for Product, Category, Page<T>, CategoryPage, SearchQuery, EnquiryRequest
+- **Outcome:** Claude correctly visited the FakeStore APIs and built the contracts as expected and gave back for review.
