@@ -48,8 +48,10 @@ apps/api/src/
   routes/                    HTTP only
   middleware/                Cross-cutting concerns only
   services/                  All business rules
-  ports/                     Interfaces services depend on: ProductSource, FeaturedSelector, Mailer, Cache
+  ports/                     Interfaces services depend on: ProductSource, ProductFeed, FeaturedSelector, Mailer, Cache
   adapters/                  The only code that talks to the outside world
+  test-support/               Fixtures, fakes and buildTestContainer() for tests (excluded from the build)
+apps/api/data/featured.json  Admin-edited list of featured product IDs (read on every request)
 apps/web/src/
   main.tsx                   Mounts <App/>
   index.css                  Tailwind import + shadcn CSS variables (all theme tokens)
@@ -69,10 +71,28 @@ Each layer has one job and depends only on the layer below it or on interfaces. 
 - **routes/**: Parse and validate the request with contract schemas, call **one** service method, map the result or error to a response. No business logic.
 - **middleware/**: Validation, error handling, rate limiting, honeypot, request logging. Nothing feature-specific.
 - **services/**: All business rules (featured selection, top-rated ranking, search, pagination, enquiry handling). Pure TypeScript with no Express, Redis, HTTP client or SMTP imports. Services receive ports through their constructor or factory arguments.
-- **ports/**: Interfaces only (`ProductSource`, `FeaturedSelector`, `Mailer`, `Cache`). Expressed in our own types.
+- **ports/**: Interfaces only, expressed in our own types.
+  - `ProductSource` is the product **query** interface (`findProducts({ search, categorySlug, excludeIds, sort, page, pageSize })`, `findProductById`, `listCategories`). Services depend only on this.
+  - `ProductFeed` returns the **full** product list. Today `ProductSource` is `services/catalogue/in-memory-product-source.ts`, which does search/sort/pagination in memory over a `ProductFeed`. A future source that can query upstream implements `ProductSource` directly as an adapter and is swapped in `container.ts`; no service changes.
+  - `FeaturedSelector`, `Cache` (string get/set with TTL; implementations throw `CacheUnavailableError` when the store is down), `Mailer`.
 - **adapters/**: Fake Store, featured.json, Redis, SMTP. Each maps external data to our own types **at the edge**, validating it with Zod. Only the Fake Store adapter knows Fake Store's response shape and category slugs (e.g. `men's clothing` → `mens-clothing`, upstream `jewelery` → `jewellery`).
 - **container.ts**: Composition root. Picks adapters from env, builds services, exposes them to `buildApp`.
 - **app.ts / server.ts**: `app.ts` builds the app and is what tests use with Supertest. `server.ts` only starts and stops it.
+
+### Catalogue data flow
+
+`FakeStoreProductFeed` (adapter) → `CachedProductFeed` (service: cache policy + single-flight) → `InMemoryProductSource` (service) → `CatalogueService` (service) → routes. The cache is Redis when `REDIS_URL` is set, otherwise an in-process memory cache. Upstream failures surface as `UpstreamUnavailableError` (503 `UPSTREAM_UNAVAILABLE`).
+
+### Endpoints
+
+| Method + path                                | Response contract  |
+| -------------------------------------------- | ------------------ |
+| `GET /health`                                | `{ status: "ok" }` |
+| `GET /api/v1/featured-products`              | `Product[]` (5)    |
+| `GET /api/v1/categories`                     | `Category[]`       |
+| `GET /api/v1/categories/:slug?page&pageSize` | `CategoryPage`     |
+| `GET /api/v1/products?term&page&pageSize`    | `SearchResult`     |
+| `GET /api/v1/products/:id`                   | `Product`          |
 
 ### API conventions
 
@@ -125,5 +145,5 @@ Do not weaken or bypass these rules to make code compile. Fix the design instead
 - **No comments in code.** Use clear names instead. ESLint can't enforce this, so it's on you, including in generated shadcn files.
 - Small, single-purpose modules. Prefer functions and factories that take their dependencies as arguments.
 - **Every feature ships with tests for its business rules**: service unit tests with fake ports, route tests with Supertest against `buildApp`, adapter tests with MSW, and hook/component tests with Testing Library + MSW.
-- Tests sit next to the code as `*.test.ts(x)`.
+- Tests sit next to the code as `*.test.ts(x)`. Service tests use fakes from `test-support/`, never adapters (the boundary rule applies to tests too). Route tests use `buildApp(buildTestContainer(...))`.
 - Ask before adding a dependency.

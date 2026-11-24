@@ -2,17 +2,9 @@ import { errorResponseSchema } from "@catalogue/contracts";
 import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { buildApp } from "./app.ts";
-import type { Env } from "./config/env.ts";
-import { createContainer } from "./container.ts";
+import { buildTestContainer } from "./test-support/test-container.ts";
 
-const testEnv: Env = {
-  NODE_ENV: "test",
-  PORT: 0,
-  LOG_LEVEL: "silent",
-  CORS_ORIGIN: "http://localhost:5173",
-};
-
-const app = buildApp(createContainer(testEnv));
+const app = buildApp(buildTestContainer());
 
 describe("app", () => {
   it("reports health", async () => {

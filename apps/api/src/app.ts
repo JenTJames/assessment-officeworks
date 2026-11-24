@@ -11,11 +11,11 @@ import { createHealthRouter } from "./routes/health.routes.ts";
 export function buildApp(container: Container): Express {
   const app = express();
   app.use(helmet());
-  app.use(cors({ origin: container.env.CORS_ORIGIN }));
+  app.use(cors({ origin: container.corsOrigin }));
   app.use(express.json({ limit: "16kb" }));
   app.use(createRequestLogger(container.logger));
   app.use("/health", createHealthRouter());
-  app.use("/api/v1", createApiV1Router());
+  app.use("/api/v1", createApiV1Router({ catalogueService: container.catalogueService }));
   app.use(notFoundHandler);
   app.use(createErrorHandler(container.logger));
   return app;
