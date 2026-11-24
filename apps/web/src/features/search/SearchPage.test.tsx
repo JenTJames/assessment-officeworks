@@ -15,6 +15,7 @@ describe("SearchPage", () => {
     expect(await screen.findByRole("heading", { name: "Results for “jacket”" })).toBeVisible();
     expect(screen.getByText("2 products match in title or description")).toBeVisible();
     expect(screen.getAllByRole("link", { name: /Product \d/ })).toHaveLength(2);
+    expect(screen.getByRole("searchbox", { name: "Search products" })).toHaveValue("jacket");
   });
 
   it("tells the customer when nothing matches", async () => {

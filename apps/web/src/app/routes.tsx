@@ -1,4 +1,5 @@
 import type { RouteObject } from "react-router";
+import { NotFoundState } from "@/components/NotFoundState";
 import { CategoryPage } from "@/features/category/CategoryPage";
 import { HomePage } from "@/features/home/HomePage";
 import { ProductPage } from "@/features/product/ProductPage";
@@ -15,6 +16,7 @@ export const routes: RouteObject[] = [
       { path: routePatterns.category, element: <CategoryPage /> },
       { path: routePatterns.search, element: <SearchPage /> },
       { path: routePatterns.product, element: <ProductPage /> },
+      { path: "*", element: <NotFoundState /> },
     ],
   },
 ];
