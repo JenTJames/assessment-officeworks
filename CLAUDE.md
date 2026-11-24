@@ -89,16 +89,21 @@ Each layer has one job and depends only on the layer below it or on interfaces. 
 
 `FakeStoreProductFeed` (adapter) → `CachedProductFeed` (service: cache policy + single-flight) → `InMemoryProductSource` (service) → `CatalogueService` (service) → routes. The cache is Redis when `REDIS_URL` is set, otherwise an in-process memory cache. Upstream failures surface as `UpstreamUnavailableError` (503 `UPSTREAM_UNAVAILABLE`).
 
+### Enquiry flow
+
+`POST /api/v1/enquiries` → rate limiter (`middleware/rate-limit.ts`; Redis store when `REDIS_URL` is set, fails open if Redis is down; 429 `RATE_LIMITED`) → honeypot (`middleware/honeypot.ts`; a filled-in `website` field gets a decoy 202 and no email) → route validates with `enquiryRequestSchema` → `EnquiryService` → `Mailer` port → `SmtpMailer` adapter (Nodemailer). An unknown product is a 400 with `fields.productId`. If product data is unavailable the email is still sent with the product ID only, so the lead is not lost. SMTP failures surface as `EmailUnavailableError` (503 `EMAIL_UNAVAILABLE`). To move to SES, add a `Mailer` adapter and swap it in `container.ts`.
+
 ### Endpoints
 
-| Method + path                                | Response contract  |
-| -------------------------------------------- | ------------------ |
-| `GET /health`                                | `{ status: "ok" }` |
-| `GET /api/v1/featured-products`              | `Product[]` (5)    |
-| `GET /api/v1/categories`                     | `Category[]`       |
-| `GET /api/v1/categories/:slug?page&pageSize` | `CategoryPage`     |
-| `GET /api/v1/products?term&page&pageSize`    | `SearchResult`     |
-| `GET /api/v1/products/:id`                   | `Product`          |
+| Method + path                                | Response contract       |
+| -------------------------------------------- | ----------------------- |
+| `GET /health`                                | `{ status: "ok" }`      |
+| `GET /api/v1/featured-products`              | `Product[]` (5)         |
+| `GET /api/v1/categories`                     | `Category[]`            |
+| `GET /api/v1/categories/:slug?page&pageSize` | `CategoryPage`          |
+| `GET /api/v1/products?term&page&pageSize`    | `SearchResult`          |
+| `GET /api/v1/products/:id`                   | `Product`               |
+| `POST /api/v1/enquiries`                     | `EnquiryResponse` (202) |
 
 ### API conventions
 
@@ -126,6 +131,7 @@ Each layer has one job and depends only on the layer below it or on interfaces. 
 - **lib/http.ts** holds the single Axios instance. **lib/api.ts** holds the typed API functions and parses responses with contract schemas.
 - **components/**: Shared presentational components (ProductTile, ProductGrid, Pagination, PriceTag, loading/error/empty states). They receive props and render. No fetching and no TanStack Query.
 - **Branding** lives only in `config/brand.ts` and the CSS variables in `index.css`, so a redesign never touches feature code. Use theme tokens (`bg-primary`, `text-muted-foreground`), never raw colours, in feature code. Beyond the shadcn tokens, `index.css` defines `--font-body`, `--rating` (stars), `--media` (product image well) and `--highlight` (badges); add a token there rather than a raw colour in a component.
+- **Forms**: React Hook Form + `zodResolver` with the contract schema. The form component takes `onSubmit: (values) => Promise<void>` and maps a rejected `ApiError`'s `fields` onto its inputs (anything else becomes a root alert). A feature-root container such as `features/enquiry/ProductEnquiry.tsx` composes the mutation hook with the form, so components stay free of TanStack Query.
 - **Async UI**: pages pass a query to `<AsyncContent state={query} loading={…}>`, which renders the loading fallback, the error panel (with retry when `describeError` allows it) or the data. Page tests render real routes with `renderRoute(path)` and fake the API with MSW handlers from `test/server.ts`.
 - Web imports are extensionless and use the `@/` alias for `src/`.
 

@@ -56,3 +56,12 @@
 
 7. **Health Endpoint & Unknown Routes**
    GET /health returns {"status":"ok"} and unknown routes return the 404 error shape, both on the dev command and on the production build.
+
+8. **Enquiry handling**
+   - The enquiry form sits on the product page below the product details, with an "Enquire about this product" button that jumps to it.
+   - `POST /api/v1/enquiries` returns `202 { "status": "received" }` once the email has been handed to the SMTP server.
+   - The sales team can reply directly: the customer's email is the email's Reply-To. User input never goes into the subject line.
+   - An enquiry about a product that doesn't exist is rejected (400). If the product data source is down, the enquiry is still sent with just the product ID, because losing a sales lead is worse than a less detailed email.
+   - A bot that fills in the honeypot field gets the same success response as a real customer, but no email is sent.
+   - Rate limit: 5 enquiries per IP per 15 minutes (configurable through `ENQUIRY_RATE_LIMIT_MAX` / `ENQUIRY_RATE_LIMIT_WINDOW_MS`). If Redis is down the limiter lets requests through rather than blocking every customer.
+
