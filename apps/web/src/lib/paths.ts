@@ -2,6 +2,7 @@ import type { CategorySlug, ProductId } from "@catalogue/contracts";
 
 export const searchTermParam = "q";
 export const pageParam = "page";
+export const enquiryAnchor = "enquire";
 
 export const routePatterns = {
   home: "/",

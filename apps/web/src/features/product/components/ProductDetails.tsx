@@ -1,10 +1,13 @@
 import type { Product } from "@catalogue/contracts";
+import { MailIcon } from "lucide-react";
 import { Link } from "react-router";
 import { PriceTag } from "@/components/PriceTag";
 import { ProductImage } from "@/components/ProductImage";
 import { RatingSummary } from "@/components/RatingSummary";
 import { Badge } from "@/components/ui/badge";
-import { paths } from "@/lib/paths";
+import { Button } from "@/components/ui/button";
+import { brand } from "@/config/brand";
+import { enquiryAnchor, paths } from "@/lib/paths";
 
 type ProductDetailsProps = {
   product: Product;
@@ -30,6 +33,12 @@ export function ProductDetails({ product }: ProductDetailsProps) {
         <p className="leading-relaxed whitespace-pre-line text-muted-foreground">
           {product.description}
         </p>
+        <Button asChild size="lg" className="h-11 self-start px-6">
+          <a href={`#${enquiryAnchor}`}>
+            <MailIcon aria-hidden="true" />
+            {brand.copy.enquiryCallToAction}
+          </a>
+        </Button>
       </div>
     </article>
   );

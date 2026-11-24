@@ -12,6 +12,14 @@ type Brand = {
     moreInCategoryTitle: string;
     searchPlaceholder: string;
     footerNote: string;
+    enquiryCallToAction: string;
+    enquiryTitle: string;
+    enquiryDescription: string;
+    enquiryResponseNote: string;
+    enquirySubmit: string;
+    enquirySubmitting: string;
+    enquirySentTitle: string;
+    enquirySendAnother: string;
   };
 };
 
@@ -29,5 +37,14 @@ export const brand: Brand = {
     moreInCategoryTitle: "More in this category",
     searchPlaceholder: "Search products",
     footerNote: "Prices in USD",
+    enquiryCallToAction: "Enquire about this product",
+    enquiryTitle: "Ask our sales team",
+    enquiryDescription:
+      "Questions about stock, sizing or bulk orders? Send us a message about this product.",
+    enquiryResponseNote: "We reply by email, usually within one business day.",
+    enquirySubmit: "Send enquiry",
+    enquirySubmitting: "Sending…",
+    enquirySentTitle: "Enquiry sent",
+    enquirySendAnother: "Send another enquiry",
   },
 };
