@@ -5,6 +5,7 @@ type AppErrorDetails = {
   status: number;
   message: string;
   fields?: FieldErrors;
+  cause?: Error;
 };
 
 export class AppError extends Error {
@@ -14,7 +15,7 @@ export class AppError extends Error {
   readonly fields: FieldErrors | undefined;
 
   constructor(details: AppErrorDetails) {
-    super(details.message);
+    super(details.message, { cause: details.cause });
     this.code = details.code;
     this.status = details.status;
     this.fields = details.fields;

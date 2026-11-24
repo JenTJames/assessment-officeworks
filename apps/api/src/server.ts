@@ -29,11 +29,13 @@ const server = buildApp(container).listen(env.PORT, (error) => {
 function shutdown(signal: NodeJS.Signals): void {
   logger.info({ signal }, "Shutting down");
   server.close((error) => {
-    if (error) {
-      logger.error({ err: error }, "Shutdown failed");
-      process.exit(1);
-    }
-    process.exit(0);
+    void container.dispose().finally(() => {
+      if (error) {
+        logger.error({ err: error }, "Shutdown failed");
+        process.exit(1);
+      }
+      process.exit(0);
+    });
   });
 }
 

@@ -1,24 +1,35 @@
 # CLAUDE.md
 
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 Product catalogue web app. Customers browse and search products and send an enquiry about a product to the sales team. This is the foundation of a real product, not a prototype. **The product data source, the look and feel, and the email provider will all change**, so each must stay swappable without touching the rest of the code.
 
 Read `DECISIONS.md` for product decisions and `PLAN.md` for the scaffold plan.
 
 ## Commands
 
-Run everything from the repo root with Node 26.13.1 (`nvm use`) and pnpm.
+Run everything from the repo root with Node 26.13.1 and pnpm. The engine is enforced, so in a fresh shell run `source ~/.nvm/nvm.sh && nvm use` first. Otherwise every pnpm command fails with `ERR_PNPM_UNSUPPORTED_ENGINE`.
 
 First-time setup: `cp .env.example .env`. The API reads the root `.env` in dev and exits at startup if a required variable is missing.
 
-| Command          | Purpose                                                               |
-| ---------------- | --------------------------------------------------------------------- |
-| `pnpm install`   | Install all workspaces                                                |
-| `pnpm dev`       | Run api (port 3000) and web (port 5173, proxies `/api` and `/health`) |
-| `pnpm typecheck` | `tsc --noEmit` in every workspace                                     |
-| `pnpm lint`      | ESLint over the whole repo, including the boundary rules              |
-| `pnpm test`      | Vitest in every workspace                                             |
-| `pnpm build`     | Build contracts, api and web                                          |
-| `pnpm format`    | Prettier                                                              |
+| Command                             | Purpose                                                               |
+| ----------------------------------- | --------------------------------------------------------------------- |
+| `pnpm install`                      | Install all workspaces                                                |
+| `pnpm dev`                          | Run api (port 3000) and web (port 5173, proxies `/api` and `/health`) |
+| `pnpm typecheck`                    | `tsc --noEmit` in every workspace                                     |
+| `pnpm lint`                         | ESLint over the whole repo, including the boundary rules              |
+| `pnpm test`                         | Vitest in every workspace                                             |
+| `pnpm build`                        | Build contracts, api and web                                          |
+| `pnpm format` / `pnpm format:check` | Prettier write / check                                                |
+| `docker compose up --build`         | Full stack: web on 8080, Mailpit on 8025                              |
+
+Run one workspace or one test file by filtering on the package name (`@catalogue/api`, `@catalogue/web`, `@catalogue/contracts`):
+
+```sh
+pnpm --filter @catalogue/api test
+pnpm --filter @catalogue/api exec vitest run src/middleware/rate-limit
+pnpm --filter @catalogue/web exec vitest run -t "search"
+```
 
 All four of `pnpm typecheck`, `pnpm lint`, `pnpm test` and `pnpm build` must pass before work is considered done.
 
@@ -31,7 +42,7 @@ All four of `pnpm typecheck`, `pnpm lint`, `pnpm test` and `pnpm build` must pas
 - **api**: Express 5, Zod, ioredis, express-rate-limit + rate-limit-redis, helmet, cors, Nodemailer, pino + pino-http. Runs on Node's native TypeScript support in dev (no tsx, no dotenv; `--env-file-if-exists=../../.env` loads the root `.env`). Built with `tsc` for production.
 - **web**: React 19, Vite, Tailwind CSS v4, shadcn/ui (new-york style, Radix), React Router 8, TanStack Query, one Axios instance, React Hook Form + `@hookform/resolvers`, Zod.
 - **Tests**: Vitest everywhere, Supertest (api), Testing Library + jsdom (web), MSW for faking HTTP. Playwright later.
-- **Later**: Docker Compose with web (nginx), api, redis, mailpit.
+- **Docker**: `docker-compose.yml` runs web (nginx serving the built app and proxying `/api` and `/health`), api (`node dist/server.js`), redis and mailpit. Dockerfiles live in each app and build from the repo root. Compose sets its own env inline; when you add a required variable, add it there too.
 
 **Ask before adding any dependency** that is not already in a `package.json`. The shadcn CLI may try to install packages: review the diff of `package.json` after every `shadcn add`. It once installed an unrelated npm package called `cn` because it could not resolve `@/lib/utils`.
 
@@ -48,18 +59,26 @@ apps/api/src/
   routes/                    HTTP only
   middleware/                Cross-cutting concerns only
   services/                  All business rules
-  ports/                     Interfaces services depend on: ProductSource, FeaturedSelector, Mailer, Cache
+  ports/                     Interfaces services depend on: ProductSource, ProductFeed, FeaturedSelector, Mailer, Cache
   adapters/                  The only code that talks to the outside world
+  test-support/               Fixtures, fakes and buildTestContainer() for tests (excluded from the build)
+apps/api/data/featured.json  Admin-edited list of featured product IDs (read on every request)
 apps/web/src/
   main.tsx                   Mounts <App/>
   index.css                  Tailwind import + shadcn CSS variables (all theme tokens)
   app/                       Router, routes, providers and layout only
   features/<name>/           home, category, search, product, enquiry: page, hooks/, components/
   components/                Shared presentational components; components/ui/ holds shadcn
-  lib/http.ts                The single Axios instance
+  hooks/                     Shared router hooks (URL params); no server state
+  lib/http.ts                The single Axios instance; maps failures to ApiError
   lib/api.ts                 Typed API functions; validates every response with contracts
+  lib/api-error.ts           ApiError and describeError() for user-facing error copy
+  lib/format.ts              Price, rating and count formatting
+  lib/paths.ts               Route patterns and link builders (the only place URLs are spelled)
   lib/utils.ts               cn()
-  config/brand.ts            Brand name, copy and other brand values
+  config/brand.ts            Brand name, logo mark, locale and UI copy
+  config/catalogue.ts        Page sizes and other catalogue display settings
+  test/                      Vitest setup, MSW server, fixtures, renderRoute()
 ```
 
 ## API layers (ports and adapters)
@@ -69,10 +88,33 @@ Each layer has one job and depends only on the layer below it or on interfaces. 
 - **routes/**: Parse and validate the request with contract schemas, call **one** service method, map the result or error to a response. No business logic.
 - **middleware/**: Validation, error handling, rate limiting, honeypot, request logging. Nothing feature-specific.
 - **services/**: All business rules (featured selection, top-rated ranking, search, pagination, enquiry handling). Pure TypeScript with no Express, Redis, HTTP client or SMTP imports. Services receive ports through their constructor or factory arguments.
-- **ports/**: Interfaces only (`ProductSource`, `FeaturedSelector`, `Mailer`, `Cache`). Expressed in our own types.
+- **ports/**: Interfaces only, expressed in our own types.
+  - `ProductSource` is the product **query** interface (`findProducts({ search, categorySlug, excludeIds, sort, page, pageSize })`, `findProductById`, `listCategories`). Services depend only on this.
+  - `ProductFeed` returns the **full** product list. Today `ProductSource` is `services/catalogue/in-memory-product-source.ts`, which does search/sort/pagination in memory over a `ProductFeed`. A future source that can query upstream implements `ProductSource` directly as an adapter and is swapped in `container.ts`; no service changes.
+  - `FeaturedSelector`, `Cache` (string get/set with TTL; implementations throw `CacheUnavailableError` when the store is down), `Mailer`.
 - **adapters/**: Fake Store, featured.json, Redis, SMTP. Each maps external data to our own types **at the edge**, validating it with Zod. Only the Fake Store adapter knows Fake Store's response shape and category slugs (e.g. `men's clothing` → `mens-clothing`, upstream `jewelery` → `jewellery`).
 - **container.ts**: Composition root. Picks adapters from env, builds services, exposes them to `buildApp`.
 - **app.ts / server.ts**: `app.ts` builds the app and is what tests use with Supertest. `server.ts` only starts and stops it.
+
+### Catalogue data flow
+
+`FakeStoreProductFeed` (adapter) → `CachedProductFeed` (service: cache policy + single-flight) → `InMemoryProductSource` (service) → `CatalogueService` (service) → routes. The cache is Redis when `REDIS_URL` is set, otherwise an in-process memory cache. Upstream failures surface as `UpstreamUnavailableError` (503 `UPSTREAM_UNAVAILABLE`).
+
+### Enquiry flow
+
+`POST /api/v1/enquiries` → rate limiter (`middleware/rate-limit.ts`; Redis store from `adapters/rate-limit/` when `REDIS_URL` is set, fails open if Redis is down; 429 `RATE_LIMITED`; keys on client IP, so `TRUST_PROXY_HOPS` must match the number of proxies in front of the API, which is 1 behind nginx in Compose) → honeypot (`middleware/honeypot.ts`; a filled-in `website` field gets a decoy 202 and no email) → route validates with `enquiryRequestSchema` → `EnquiryService` → `Mailer` port → `SmtpMailer` adapter (Nodemailer). An unknown product is a 400 with `fields.productId`. If product data is unavailable the email is still sent with the product ID only, so the lead is not lost. SMTP failures surface as `EmailUnavailableError` (503 `EMAIL_UNAVAILABLE`). To move to SES, add a `Mailer` adapter and swap it in `container.ts`.
+
+### Endpoints
+
+| Method + path                                | Response contract       |
+| -------------------------------------------- | ----------------------- |
+| `GET /health`                                | `{ status: "ok" }`      |
+| `GET /api/v1/featured-products`              | `Product[]` (5)         |
+| `GET /api/v1/categories`                     | `Category[]`            |
+| `GET /api/v1/categories/:slug?page&pageSize` | `CategoryPage`          |
+| `GET /api/v1/products?term&page&pageSize`    | `SearchResult`          |
+| `GET /api/v1/products/:id`                   | `Product`               |
+| `POST /api/v1/enquiries`                     | `EnquiryResponse` (202) |
 
 ### API conventions
 
@@ -99,7 +141,9 @@ Each layer has one job and depends only on the layer below it or on interfaces. 
 - **Hooks** own server state and call `lib/api.ts`. They are the only callers of `lib/api.ts`.
 - **lib/http.ts** holds the single Axios instance. **lib/api.ts** holds the typed API functions and parses responses with contract schemas.
 - **components/**: Shared presentational components (ProductTile, ProductGrid, Pagination, PriceTag, loading/error/empty states). They receive props and render. No fetching and no TanStack Query.
-- **Branding** lives only in `config/brand.ts` and the CSS variables in `index.css`, so a redesign never touches feature code. Use theme tokens (`bg-primary`, `text-muted-foreground`), never raw colours, in feature code.
+- **Branding** lives only in `config/brand.ts` and the CSS variables in `index.css`, so a redesign never touches feature code. Use theme tokens (`bg-primary`, `text-muted-foreground`), never raw colours, in feature code. Beyond the shadcn tokens, `index.css` defines `--font-body`, `--rating` (stars), `--media` (product image well) and `--highlight` (badges); add a token there rather than a raw colour in a component.
+- **Forms**: React Hook Form + `zodResolver` with the contract schema. The form component takes `onSubmit: (values) => Promise<void>` and maps a rejected `ApiError`'s `fields` onto its inputs (anything else becomes a root alert). A feature-root container such as `features/enquiry/ProductEnquiry.tsx` composes the mutation hook with the form, so components stay free of TanStack Query.
+- **Async UI**: pages pass a query to `<AsyncContent state={query} loading={…}>`, which renders the loading fallback, the error panel (with retry when `describeError` allows it) or the data. Page tests render real routes with `renderRoute(path)` and fake the API with MSW handlers from `test/server.ts`.
 - Web imports are extensionless and use the `@/` alias for `src/`.
 
 ## Contracts
@@ -125,5 +169,5 @@ Do not weaken or bypass these rules to make code compile. Fix the design instead
 - **No comments in code.** Use clear names instead. ESLint can't enforce this, so it's on you, including in generated shadcn files.
 - Small, single-purpose modules. Prefer functions and factories that take their dependencies as arguments.
 - **Every feature ships with tests for its business rules**: service unit tests with fake ports, route tests with Supertest against `buildApp`, adapter tests with MSW, and hook/component tests with Testing Library + MSW.
-- Tests sit next to the code as `*.test.ts(x)`.
+- Tests sit next to the code as `*.test.ts(x)`. Service tests use fakes from `test-support/`, never adapters (the boundary rule applies to tests too). Route tests use `buildApp(buildTestContainer(...))`.
 - Ask before adding a dependency.

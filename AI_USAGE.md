@@ -1,6 +1,6 @@
 # AI Usage Log
 
-## 23 November 2026, 23:05
+## 23 November 2026, 23:05 - 24 November 2026, 01:20
 
 ### 1. Requirements analysis
 
@@ -9,8 +9,7 @@
 
   > Analyze the attached document and understand the requirement. You are the Senior Developer in charge of creating the application and I am the Product Manager. Based on your analysis, ask me clarifying questions (if any). Based on my answers, your task is to identify the gaps and design the solution to make it maintainable and extensible in the long run.
 
-- **Outcome:**: Claude analyzed the document and asked for clarifying questions and bought forward the gaps in the acceptance criteria.
-
+- **Outcome:** Claude analysed the document, asked clarifying questions and brought forward the gaps in the acceptance criteria.
 
 ### 2. Preparing DECISIONS.md
 
@@ -20,6 +19,7 @@
   > I am pasting my decision.md contents. Format it properly and fix any grammatical mistakes.
 
   A rough draft of my DECISIONS.md was pasted as context.
+
 - **Outcome:** Claude formatted the content as Markdown and fixed the grammar.
 
 ### 3. Building the plan
@@ -99,15 +99,60 @@
 > 3. Write a CLAUDE.md at the repo root that captures this architecture, the layer responsibilities, the boundaries and the coding rules, so future sessions follow them.
 > 4. Finish by running `pnpm install`, `pnpm typecheck`, `pnpm lint` and `pnpm test`. All must pass. Then summarise what you created and anything you assumed.
 
-- **Outcome:**: Claude generated the plan and passed it to me for approval. After approval, the workspace is scaffolded and I reviewed the folder structure to ensure that it followed the plan accurately and best practices were followed.
-- **My correction to Claude's Plan:**
-    I went reviewed the plan and asked Claude to use React 19 instead of React 18 since ShadCN's Tailwind V4 components no longer uses React.forwardRef and instead uses React 19's ref as an ordinary prop.
+- **Outcome:** Claude generated the plan (`PLAN.md`) and passed it to me for approval.
+- **My correction to Claude's plan:** I reviewed the plan and asked Claude to use React 19 instead of React 18, since shadcn/ui's Tailwind v4 components no longer use `React.forwardRef` and instead rely on React 19's `ref` as an ordinary prop.
 
-### 4. Scaffolding the Project
-- **Tool:** Claude Opus 5.5, medium effort (Claude Code CLI, Accept edits mode)
-- **Outcome:** Claude scaffolded the project, correctly flagged incompatibility of React Router 8 & React 19.2.7 below versions. So, if I went ahead with Claude's suggestion of using React 18, it could have broken the app.
+## 24 November 2026, 14:30 - 24 November 2026, 18:30
 
-### 5. Building API Contracts
+### 4. Scaffolding the project
+
 - **Tool:** Claude Opus 5.5, medium effort (Claude Code CLI, Accept edits mode)
-- **Prompt:** Let's work on the contracts now. Check the Fakestore API documentation at https://fakestoreapi.com/ and build contracts for Product, Category, Page<T>, CategoryPage, SearchQuery, EnquiryRequest
-- **Outcome:** Claude correctly visited the FakeStore APIs and built the contracts as expected and gave back for review.
+- **Outcome:** Claude scaffolded the workspace from the approved plan. I reviewed the folder structure to make sure it followed the plan and best practices. Claude also flagged that React Router 8 is incompatible with React versions below 19.2.7, which confirmed my correction: had I kept React 18 as originally prompted, the app would have broken.
+
+### 5. Building the API contracts
+
+- **Tool:** Claude Opus 5.5, medium effort (Claude Code CLI, Accept edits mode)
+- **Key prompt:**
+
+  > Let's work on the contracts now. Check the Fakestore API documentation at https://fakestoreapi.com/ and build contracts for Product, Category, Page<T>, CategoryPage, SearchQuery, EnquiryRequest
+
+- **Outcome:** Claude read the Fake Store API documentation, built the contracts as expected and handed them back for review.
+
+### 6. Building the catalogue API
+
+- **Tool:** Claude Opus 5.5, medium effort (Claude Code CLI, Accept edits mode)
+- **Outcome:** Built over multiple prompts and follow-ups: the Fake Store adapter, the cached product feed (10-minute freshness, 24-hour stale fallback, single-flight refetch), the in-memory product source, the catalogue service and the featured, category, search and product endpoints.
+
+### 7. Creating the UI
+
+- **Tool:** Claude Opus 5.5, high effort (claude.ai, Claude Design). The design artifact was then used as the reference in Claude Code.
+- **Key prompt:**
+
+  > Refer the artifact and build the UI for supporting the catalogue API. Build using a component driven design and prefer maintainability, readability and minimal code duplication. The design should be made configurable so that it is easy to update the theme of the application.
+
+- **Outcome:** Claude built the UI to match the design artifact: theme tokens in `index.css` and `config/brand.ts`, a typed API client validated against the contracts, shared product and async-state components, and the home, category, search and product pages with MSW-backed route tests.
+
+### 8. Building the enquiry feature
+
+- **Tool:** Claude Opus 5.5, medium effort (Claude Code CLI, Accept edits mode)
+- **Outcome:** Claude built the enquiry flow end to end: the `Mailer` port and SMTP adapter, the enquiry service, the Redis-backed rate limiter that fails open, the honeypot middleware, `POST /api/v1/enquiries`, and the enquiry form on the product page with server field errors mapped onto the inputs. Follow-ups added the "Thank you" message after a successful enquiry and a configurable number of trusted proxy hops, so the rate limiter sees the real client IP behind nginx. The enquiry decisions were recorded in DECISIONS.md (section 8).
+
+### 9. Docker and documentation
+
+- **Tool:** Claude Opus 5.5, medium effort (Claude Code CLI, Accept edits mode)
+- **Outcome:** Claude added the production API Dockerfile, the nginx web image and a Docker Compose file running web, api, redis and mailpit, then wrote the README and updated CLAUDE.md with the Docker setup.
+
+### 10. Updating this log and DECISIONS.md
+
+- **Tool:** Claude Opus 5.5 (Claude Code CLI, auto mode)
+- **Key prompt:**
+
+  > update the @AI_USAGE.md and @DECISIONS.md
+
+- **Outcome:** Claude added the missing entries from the git history, fixed the numbering, the session end time and typos, and recorded the decisions made during implementation in DECISIONS.md.
+
+## Where the AI got things wrong
+
+1. **The API ignored the root `.env`.** When Claude scaffolded the API, its dev script loaded `--env-file-if-exists=.env`. That path resolves to `apps/api/.env`, not the root `.env` the plan specified. Because the flag is "if exists", nothing reported the missing file. I caught it when the API exited at startup: the env validation in `config/env.ts` fails fast when a required variable is missing. I fixed the path to `../../.env` (commit `6d80f4c`).
+2. **shadcn installed an unrelated npm package.** While adding a shadcn component, the shadcn CLI could not resolve the `@/lib/utils` alias, and as a result an unrelated npm package called `cn` was added to `package.json`. I caught it by reviewing the `package.json` diff and removed it. I then added a rule to CLAUDE.md: ask before adding any dependency, and review `package.json` after every `shadcn add`.
+3. **Plan corrections.** These weren't errors, but I overrode two of Claude's choices during planning. I changed my own prompt's React 18 to React 19, and Claude later confirmed that React Router 8 needs React 19.2.7 or later. I also rejected Claude's suggestion of Fastify in favour of Express to keep the stack simple (see [DECISIONS.md](DECISIONS.md)).
