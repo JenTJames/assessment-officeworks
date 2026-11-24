@@ -10,15 +10,16 @@ Run everything from the repo root with Node 26.13.1 (`nvm use`) and pnpm.
 
 First-time setup: `cp .env.example .env`. The API reads the root `.env` in dev and exits at startup if a required variable is missing.
 
-| Command          | Purpose                                                               |
-| ---------------- | --------------------------------------------------------------------- |
-| `pnpm install`   | Install all workspaces                                                |
-| `pnpm dev`       | Run api (port 3000) and web (port 5173, proxies `/api` and `/health`) |
-| `pnpm typecheck` | `tsc --noEmit` in every workspace                                     |
-| `pnpm lint`      | ESLint over the whole repo, including the boundary rules              |
-| `pnpm test`      | Vitest in every workspace                                             |
-| `pnpm build`     | Build contracts, api and web                                          |
-| `pnpm format`    | Prettier                                                              |
+| Command                     | Purpose                                                               |
+| --------------------------- | --------------------------------------------------------------------- |
+| `pnpm install`              | Install all workspaces                                                |
+| `pnpm dev`                  | Run api (port 3000) and web (port 5173, proxies `/api` and `/health`) |
+| `pnpm typecheck`            | `tsc --noEmit` in every workspace                                     |
+| `pnpm lint`                 | ESLint over the whole repo, including the boundary rules              |
+| `pnpm test`                 | Vitest in every workspace                                             |
+| `pnpm build`                | Build contracts, api and web                                          |
+| `pnpm format`               | Prettier                                                              |
+| `docker compose up --build` | Full stack: web on 8080, Mailpit on 8025                              |
 
 All four of `pnpm typecheck`, `pnpm lint`, `pnpm test` and `pnpm build` must pass before work is considered done.
 
@@ -31,7 +32,7 @@ All four of `pnpm typecheck`, `pnpm lint`, `pnpm test` and `pnpm build` must pas
 - **api**: Express 5, Zod, ioredis, express-rate-limit + rate-limit-redis, helmet, cors, Nodemailer, pino + pino-http. Runs on Node's native TypeScript support in dev (no tsx, no dotenv; `--env-file-if-exists=../../.env` loads the root `.env`). Built with `tsc` for production.
 - **web**: React 19, Vite, Tailwind CSS v4, shadcn/ui (new-york style, Radix), React Router 8, TanStack Query, one Axios instance, React Hook Form + `@hookform/resolvers`, Zod.
 - **Tests**: Vitest everywhere, Supertest (api), Testing Library + jsdom (web), MSW for faking HTTP. Playwright later.
-- **Later**: Docker Compose with web (nginx), api, redis, mailpit.
+- **Docker**: `docker-compose.yml` runs web (nginx serving the built app and proxying `/api` and `/health`), api (`node dist/server.js`), redis and mailpit. Dockerfiles live in each app and build from the repo root. Compose sets its own env inline; when you add a required variable, add it there too.
 
 **Ask before adding any dependency** that is not already in a `package.json`. The shadcn CLI may try to install packages: review the diff of `package.json` after every `shadcn add`. It once installed an unrelated npm package called `cn` because it could not resolve `@/lib/utils`.
 
