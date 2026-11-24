@@ -1,18 +1,23 @@
+export type ApiFieldErrors = Record<string, string[]>;
+
 type ApiErrorDetails = {
   status: number;
   code: string;
   message: string;
+  fields?: ApiFieldErrors;
 };
 
 export class ApiError extends Error {
   override name = "ApiError";
   readonly status: number;
   readonly code: string;
+  readonly fields: ApiFieldErrors;
 
-  constructor({ status, code, message }: ApiErrorDetails) {
+  constructor({ status, code, message, fields = {} }: ApiErrorDetails) {
     super(message);
     this.status = status;
     this.code = code;
+    this.fields = fields;
   }
 
   get isNotFound(): boolean {

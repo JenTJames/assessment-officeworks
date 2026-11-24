@@ -1,12 +1,15 @@
 import {
   categoryListSchema,
   categoryPageSchema,
+  enquiryResponseSchema,
   productListSchema,
   productSchema,
   searchResultSchema,
   type Category,
   type CategoryPage,
   type CategorySlug,
+  type EnquiryRequest,
+  type EnquiryResponse,
   type PaginationQuery,
   type Product,
   type ProductId,
@@ -51,4 +54,9 @@ export function searchProducts(
 
 export function getProduct(id: ProductId): Promise<Product> {
   return getParsed(productSchema, `/products/${encodeURIComponent(id)}`);
+}
+
+export async function submitEnquiry(enquiry: EnquiryRequest): Promise<EnquiryResponse> {
+  const response = await http.post<z.input<typeof enquiryResponseSchema>>("/enquiries", enquiry);
+  return enquiryResponseSchema.parse(response.data);
 }
