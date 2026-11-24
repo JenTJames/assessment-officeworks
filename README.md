@@ -16,6 +16,7 @@ It is built as the foundation of a real product rather than a throwaway prototyp
 - [API](#api)
 - [Testing](#testing)
 - [Known gaps](#known-gaps)
+- [Time spent](#time-spent)
 - [Further reading](#further-reading)
 
 ## Technology choice
@@ -118,13 +119,13 @@ If the API exits at startup with `Invalid environment configuration`, a required
 
 ## Try the acceptance criteria
 
-| Criterion     | How to try it                                                                                                                                                                                                                                                                                                                                                                      |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Home page     | Open the home page (http://localhost:8080 with Docker, http://localhost:5173 in local development) to see 5 featured products. To choose them, put 5 product IDs in [`apps/api/data/featured.json`](apps/api/data/featured.json), for example `["1", "5", "9", "13", "17"]`, and reload. No restart needed. When the file is empty (`[]`), the 5 highest-rated products are shown. |
-| Category page | Click a category. The top 3 products by rating appear first, followed by the rest of the category, paginated. No product appears twice.                                                                                                                                                                                                                                            |
-| Search        | Type a term in the header search bar and click **Search**. Results match the title or description, case-insensitive, partial match.                                                                                                                                                                                                                                                |
-| Product page  | Click any product tile.                                                                                                                                                                                                                                                                                                                                                            |
-| Enquiry       | On a product page click **Enquire about this product**, fill in the form and submit. You see a "Thank you" message, and the email appears in Mailpit at http://localhost:8025.                                                                                                                                                                                                     |
+| Criterion     | How to try it                                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Home page     | Open the home page (http://localhost:8080 with Docker, http://localhost:5173 in local development) to see 5 featured products. They are the IDs listed in [`apps/api/data/featured.json`](apps/api/data/featured.json), seeded with `["1", "5", "9", "13", "17"]`. To choose others, edit the file and reload. No restart needed. When the file is empty (`[]`), the 5 highest-rated products are shown. |
+| Category page | Click a category. The top 3 products by rating appear first, followed by the rest of the category, paginated. No product appears twice.                                                                                                                                                                                                                                                                  |
+| Search        | Type a term in the header search bar and click **Search**. Results match the title or description, case-insensitive, partial match.                                                                                                                                                                                                                                                                      |
+| Product page  | Click any product tile.                                                                                                                                                                                                                                                                                                                                                                                  |
+| Enquiry       | On a product page click **Enquire about this product**, fill in the form and submit. You see a "Thank you" message, and the email appears in Mailpit at http://localhost:8025.                                                                                                                                                                                                                           |
 
 ## Configuration
 
@@ -294,6 +295,17 @@ These were left out to stay within the time box. They are listed in priority ord
 - **No end-to-end browser tests.** Playwright is planned. The critical path is currently covered by route-level web tests with a faked API.
 - **No deployment pipeline.** The images are AWS-ready (for example ECS Fargate for the API, ElastiCache for Redis, SES over SMTP for email, and the web image or S3 + CloudFront for the client), but there is no infrastructure code or CI yet.
 - **No admin UI for featured products.** They are chosen by editing `featured.json`, as recorded in [DECISIONS.md](DECISIONS.md).
+
+The reasons for each cut and the plan for the next day are in [DECISIONS.md](DECISIONS.md).
+
+## Time spent
+
+About **6h 15m** in total, over the 2–3 hour time box. The times come from the sessions logged in [AI_USAGE.md](AI_USAGE.md).
+
+| Phase                           | Time   | What it covered                                                                                                                                |
+| ------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Planning                        | 2h 15m | Analysing the requirements, writing DECISIONS.md, and building and reviewing the plan and CLAUDE.md                                            |
+| Building, testing and reviewing | 4h     | Scaffolding, contracts, API, UI, enquiry, Docker and docs. More of this went on testing and reviewing the AI's output than on generating code. |
 
 ## Further reading
 

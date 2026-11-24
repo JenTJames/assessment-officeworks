@@ -1,25 +1,35 @@
 # CLAUDE.md
 
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 Product catalogue web app. Customers browse and search products and send an enquiry about a product to the sales team. This is the foundation of a real product, not a prototype. **The product data source, the look and feel, and the email provider will all change**, so each must stay swappable without touching the rest of the code.
 
 Read `DECISIONS.md` for product decisions and `PLAN.md` for the scaffold plan.
 
 ## Commands
 
-Run everything from the repo root with Node 26.13.1 (`nvm use`) and pnpm.
+Run everything from the repo root with Node 26.13.1 and pnpm. The engine is enforced, so in a fresh shell run `source ~/.nvm/nvm.sh && nvm use` first. Otherwise every pnpm command fails with `ERR_PNPM_UNSUPPORTED_ENGINE`.
 
 First-time setup: `cp .env.example .env`. The API reads the root `.env` in dev and exits at startup if a required variable is missing.
 
-| Command                     | Purpose                                                               |
-| --------------------------- | --------------------------------------------------------------------- |
-| `pnpm install`              | Install all workspaces                                                |
-| `pnpm dev`                  | Run api (port 3000) and web (port 5173, proxies `/api` and `/health`) |
-| `pnpm typecheck`            | `tsc --noEmit` in every workspace                                     |
-| `pnpm lint`                 | ESLint over the whole repo, including the boundary rules              |
-| `pnpm test`                 | Vitest in every workspace                                             |
-| `pnpm build`                | Build contracts, api and web                                          |
-| `pnpm format`               | Prettier                                                              |
-| `docker compose up --build` | Full stack: web on 8080, Mailpit on 8025                              |
+| Command                             | Purpose                                                               |
+| ----------------------------------- | --------------------------------------------------------------------- |
+| `pnpm install`                      | Install all workspaces                                                |
+| `pnpm dev`                          | Run api (port 3000) and web (port 5173, proxies `/api` and `/health`) |
+| `pnpm typecheck`                    | `tsc --noEmit` in every workspace                                     |
+| `pnpm lint`                         | ESLint over the whole repo, including the boundary rules              |
+| `pnpm test`                         | Vitest in every workspace                                             |
+| `pnpm build`                        | Build contracts, api and web                                          |
+| `pnpm format` / `pnpm format:check` | Prettier write / check                                                |
+| `docker compose up --build`         | Full stack: web on 8080, Mailpit on 8025                              |
+
+Run one workspace or one test file by filtering on the package name (`@catalogue/api`, `@catalogue/web`, `@catalogue/contracts`):
+
+```sh
+pnpm --filter @catalogue/api test
+pnpm --filter @catalogue/api exec vitest run src/middleware/rate-limit
+pnpm --filter @catalogue/web exec vitest run -t "search"
+```
 
 All four of `pnpm typecheck`, `pnpm lint`, `pnpm test` and `pnpm build` must pass before work is considered done.
 
@@ -92,7 +102,7 @@ Each layer has one job and depends only on the layer below it or on interfaces. 
 
 ### Enquiry flow
 
-`POST /api/v1/enquiries` → rate limiter (`middleware/rate-limit.ts`; Redis store when `REDIS_URL` is set, fails open if Redis is down; 429 `RATE_LIMITED`) → honeypot (`middleware/honeypot.ts`; a filled-in `website` field gets a decoy 202 and no email) → route validates with `enquiryRequestSchema` → `EnquiryService` → `Mailer` port → `SmtpMailer` adapter (Nodemailer). An unknown product is a 400 with `fields.productId`. If product data is unavailable the email is still sent with the product ID only, so the lead is not lost. SMTP failures surface as `EmailUnavailableError` (503 `EMAIL_UNAVAILABLE`). To move to SES, add a `Mailer` adapter and swap it in `container.ts`.
+`POST /api/v1/enquiries` → rate limiter (`middleware/rate-limit.ts`; Redis store from `adapters/rate-limit/` when `REDIS_URL` is set, fails open if Redis is down; 429 `RATE_LIMITED`; keys on client IP, so `TRUST_PROXY_HOPS` must match the number of proxies in front of the API, which is 1 behind nginx in Compose) → honeypot (`middleware/honeypot.ts`; a filled-in `website` field gets a decoy 202 and no email) → route validates with `enquiryRequestSchema` → `EnquiryService` → `Mailer` port → `SmtpMailer` adapter (Nodemailer). An unknown product is a 400 with `fields.productId`. If product data is unavailable the email is still sent with the product ID only, so the lead is not lost. SMTP failures surface as `EmailUnavailableError` (503 `EMAIL_UNAVAILABLE`). To move to SES, add a `Mailer` adapter and swap it in `container.ts`.
 
 ### Endpoints
 
