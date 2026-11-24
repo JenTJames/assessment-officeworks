@@ -1,6 +1,6 @@
 # AI Usage Log
 
-## 23 November 2026, 23:05
+## 23 November 2026, 23:05 - 24 November 2026, 01:20
 
 ### 1. Requirements analysis
 
@@ -103,6 +103,8 @@
 - **My correction to Claude's Plan:**
     I went reviewed the plan and asked Claude to use React 19 instead of React 18 since ShadCN's Tailwind V4 components no longer uses React.forwardRef and instead uses React 19's ref as an ordinary prop.
 
+## 24 November 2026, 14:30 - 24 November 2026, 06:00
+
 ### 4. Scaffolding the Project
 - **Tool:** Claude Opus 5.5, medium effort (Claude Code CLI, Accept edits mode)
 - **Outcome:** Claude scaffolded the project, correctly flagged incompatibility of React Router 8 & React 19.2.7 below versions. So, if I went ahead with Claude's suggestion of using React 18, it could have broken the app.
@@ -111,3 +113,12 @@
 - **Tool:** Claude Opus 5.5, medium effort (Claude Code CLI, Accept edits mode)
 - **Prompt:** Let's work on the contracts now. Check the Fakestore API documentation at https://fakestoreapi.com/ and build contracts for Product, Category, Page<T>, CategoryPage, SearchQuery, EnquiryRequest
 - **Outcome:** Claude correctly visited the FakeStore APIs and built the contracts as expected and gave back for review.
+
+### 6. Building the APIs
+- **Tool:** Claude Opus 5.5, medium effort (Claude Code CLI, Accept edits mode)
+- **Outcome:** Multiple prompts and followups were fired to build the APIs using claude.
+
+### 6. Creating the UI
+- **Tool:** Claude Opus 5.5, high effort (claude.ai, claude design) - Artifact created for reference in code
+- **Prompt:** Refer the artifact and build the build the UI for supporting the catelogue API. Build using a component driven design and prefer maintainability, readability and minimal code duplication. The design should be made configurable so that it is easy to update the theme of the application. 
+- **Outcome:** Claude referred the created design artifact and created the UI eaxactly as is. 
