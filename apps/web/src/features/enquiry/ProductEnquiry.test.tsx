@@ -58,7 +58,7 @@ describe("product enquiry", () => {
     await user.type(screen.getByLabelText("Message (optional)"), "Do you have it in navy?");
     await user.click(screen.getByRole("button", { name: "Send enquiry" }));
 
-    const confirmation = await screen.findByRole("heading", { name: "Enquiry sent" });
+    const confirmation = await screen.findByRole("heading", { name: "Thank you for your enquiry" });
     expect(confirmation).toHaveFocus();
     expect(screen.getByText("ada@example.com")).toBeVisible();
     expect(received).toEqual([

@@ -27,8 +27,7 @@ export function EnquirySent({ email, onSendAnother }: EnquirySentProps) {
         {brand.copy.enquirySentTitle}
       </h3>
       <p className="text-sm text-muted-foreground">
-        Thanks for getting in touch. Our sales team will reply to{" "}
-        <span className="font-medium text-foreground">{email}</span>.
+        Our sales team will reply to <span className="font-medium text-foreground">{email}</span>.
       </p>
       <Button variant="outline" onClick={onSendAnother}>
         {brand.copy.enquirySendAnother}

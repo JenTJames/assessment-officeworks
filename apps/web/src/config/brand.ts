@@ -44,7 +44,7 @@ export const brand: Brand = {
     enquiryResponseNote: "We reply by email, usually within one business day.",
     enquirySubmit: "Send enquiry",
     enquirySubmitting: "Sending…",
-    enquirySentTitle: "Enquiry sent",
+    enquirySentTitle: "Thank you for your enquiry",
     enquirySendAnother: "Send another enquiry",
   },
 };
